@@ -13,7 +13,7 @@ Este programa en C implementa una alcancía digital con funcionalidades básicas
 ## Uso
 
 1. Clona este repositorio:
-git clone https://github.com/tu-usuario/alcancia-c.git
+git clone https://github.com/C4M3L0T/PiggyBank.git
 
 2. Compila el programa:
 gcc alcancia.c -o alcancia
