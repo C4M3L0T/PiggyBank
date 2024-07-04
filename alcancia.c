@@ -9,6 +9,7 @@ typedef struct{
     char *hora;
     char *tipo;
     char *usuario;
+    float cambioDeSaldo;
 } Transaccion;
 
 // Definimos el nodo para la lista enlazada de transaccion
@@ -22,7 +23,7 @@ typedef struct{
     char *usuario;
     char *pass;
     float saldo;
-    ListaTransaccion transacciones;
+    ListaTransaccion *transacciones;
     char *meta;
 } Usuario;
 
@@ -33,13 +34,14 @@ ListaTransaccion *Listatransaccion(ListaTransaccion *Lista){
 }
 
 // Funcion para agregar datos en la lista
-ListaTransaccion *AgregarTransaccion(ListaTransaccion *Lista,char *fecha,char *hora,char *tipo, char *usuario){
+ListaTransaccion *AgregarTransaccion(ListaTransaccion *Lista,char fecha[20],char hora[10],char *tipo, char *usuario,float cambioDeSaldo){
     //Definimos la transaccion
     Transaccion nuevaTransaccion;
-    nuevaTransaccion.fecha = fecha;
-    nuevaTransaccion.hora = hora;
+    nuevaTransaccion.fecha = strdup(fecha);
+    nuevaTransaccion.hora = strdup(hora);
     nuevaTransaccion.tipo = tipo;
     nuevaTransaccion.usuario = usuario;
+    nuevaTransaccion.cambioDeSaldo = cambioDeSaldo;
 
     //Crear nodo y asignar transaccion
     ListaTransaccion *nuevoNodo = (ListaTransaccion*)malloc(sizeof(ListaTransaccion));
@@ -63,12 +65,22 @@ ListaTransaccion *AgregarTransaccion(ListaTransaccion *Lista,char *fecha,char *h
 
 // Funcion para imprimir la lista
 void ImprimirListaTransaccion(ListaTransaccion *Lista){
+
+    printf("****************** Historial de transacciones ****************************\n");
     while (Lista != NULL)
     {
         printf("Transaccion de %s\n",Lista->transaccion.tipo);
         printf("Fecha: %s\n",Lista->transaccion.fecha);
         printf("Hora: %s\n",Lista->transaccion.hora);
+        if(Lista->transaccion.tipo == "Deposito"){
+            printf("Deposito realizado de de $%f pesos.\n",Lista->transaccion.cambioDeSaldo);
+        }else{
+            printf("Retiro realizado de de $%f pesos.\n",Lista->transaccion.cambioDeSaldo);
+        }
         printf("La transaccion fue hecha por el usuario: %s\n",Lista->transaccion.usuario);
+        if(Lista->siguiente != NULL){
+            printf("**********************************************\n");
+        }
         Lista = Lista->siguiente;
     }
 }
@@ -119,7 +131,7 @@ int main() {
     bool salir = 1;
     char fecha[20];
     char hora[10];
-
+    float cambioDeSaldo; 
     // Definimos el usuario 
     usuario.pass = "pass";
     usuario.usuario = "Angel";
@@ -127,42 +139,51 @@ int main() {
     usuario.saldo = 0;
 
     // Definimos la Lista enlazada
-    ListaTransaccion *Lista = Listatransaccion(Lista);
+     usuario.transacciones = Listatransaccion(usuario.transacciones);
 
-    //Lista = AgregarTransaccion(Lista,fecha,hora,"retiro",usuario.usuario);
     while(1){
         MenuInicio();
         scanf("%c",&opc);
-
         if(opc == 'a' || opc == 'A'){
             //IniciarSesion();
-            do{          
+            do{
+         
                 MenuCRUD(usuario);
                 scanf("%i",&opciones);
                 switch(opciones){
                     case 1:
-                        //VerSaldo();
+                        //VerSaldo
+                        printf("Tu saldo es de $%f pesos",usuario.saldo);
                     break;
 
                     case 2:
-                        //Retirar;
+                        //Retirar
+                        printf("Ingresa la cantidad en pesos a retirar: \n");
+                        scanf("%f",&cambioDeSaldo);
+                        usuario.saldo = usuario.saldo-cambioDeSaldo;
                         obtenerFechaHora(fecha,hora);
-                        Lista = AgregarTransaccion(Lista,fecha,hora,"Retiro",usuario.usuario);
-
+                        usuario.transacciones = AgregarTransaccion(usuario.transacciones,fecha,hora,"Retiro",usuario.usuario,cambioDeSaldo);
+                        printf("Tu nuevo saldo es $%f pesos\n",usuario.saldo);
                     break;
 
                     case 3:
-                        //Agregar;
+                        //Agregar
+                        printf("Ingresa la cantidad en pesos a retirar: \n");
+                        scanf("%f",&cambioDeSaldo);
+                        usuario.saldo = usuario.saldo+cambioDeSaldo;
                         obtenerFechaHora(fecha,hora);
-                        Lista = AgregarTransaccion(Lista,fecha,hora,"Deposito",usuario.usuario);                        
+                        usuario.transacciones = AgregarTransaccion(usuario.transacciones,fecha,hora,"Deposito",usuario.usuario,cambioDeSaldo);
+                        printf("Tu nuevo saldo es $%f pesos\n",usuario.saldo);                    
                     break;
 
                     case 4:
-                        ImprimirListaTransaccion(Lista);
+                        //Historial
+                        ImprimirListaTransaccion(usuario.transacciones);
                     break;
 
                     case 5:
-                        //VerMeta();
+                        //Meta
+                        printf("La objetivo de %s para ahorrar es para: %s\n",usuario.usuario,usuario.meta);
                     break;
 
                     case 6:
@@ -174,7 +195,7 @@ int main() {
                         printf("Opcion no valida\n");
                     break;
                     }
-                //Guardar(usuario);
+                Guardar(usuario);
             }while(salir);
             salir = 1;
             
