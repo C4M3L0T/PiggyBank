@@ -110,6 +110,14 @@ void MenuCRUD(Usuario usuario){
 
 // Funcion Inicio de Sesion
 
+bool IniciarSesion(char *name, char *password,Usuario usuario){
+    if((strcmp(usuario.usuario, name) == 0) && strcmp(usuario.pass, password) == 0){
+        return true;
+    }else{
+        return false;
+    }
+}
+
 // Función para obtener la fecha actual
 void obtenerFechaHora(char *fecha, char *hora) {
     time_t t = time(NULL);
@@ -235,6 +243,25 @@ void GuardarUsuario(Usuario* usuario){
     fclose(file);
 }
 
+// Funcion para liberar memoria dinamica 
+void LiberarUsuario(Usuario* usuario) {
+    if (usuario == NULL) return;
+    free(usuario->usuario);
+    free(usuario->pass);
+    free(usuario->meta);
+
+    ListaTransaccion* actual = usuario->transacciones;
+    while (actual != NULL) {
+        ListaTransaccion* siguiente = actual->siguiente;
+        free(actual->transaccion.fecha);
+        free(actual->transaccion.hora);
+        free(actual->transaccion.tipo);
+        free(actual->transaccion.usuario);   
+        free(actual);
+        actual = siguiente;
+    }
+}
+
 
 int main() {
     Usuario usuario;
@@ -243,22 +270,29 @@ int main() {
     bool salir = 1;
     char fecha[20];
     char hora[10];
+    char name[50];
+    char password[50];
     float cambioDeSaldo; 
     // Definimos el espacio para la lista de transacciones 
     //Definimos el usuario 
     //usuario.usuario = "Angel";
     //usuario.pass = "pass";
     //usuario.saldo = 0;
-    //usuario.meta = "Silla Gamer";
+    //usuario.meta = "Silla Gamer: 5000"; 
     
-    usuario = *LeerUsuario();
     while(1){
         MenuInicio();
-        scanf("%c",&opc);
+        //Leemos el usuario desde el archivo
+        usuario = *LeerUsuario();
+        
+        scanf(" %c",&opc);
         if(opc == 'a' || opc == 'A'){
-            //IniciarSesion();
-            do{
-         
+            printf("Ingresa el usuario:\n");
+            scanf("%s",name);
+            printf("Ingresa la contrasena:\n");
+            scanf("%s",password);
+            if(IniciarSesion(name,password,usuario)){
+                do{
                 MenuCRUD(usuario);
                 scanf("%i",&opciones);
                 switch(opciones){
@@ -271,10 +305,14 @@ int main() {
                         //Retirar
                         printf("Ingresa la cantidad en pesos a retirar: \n");
                         scanf("%f",&cambioDeSaldo);
-                        usuario.saldo = usuario.saldo-cambioDeSaldo;
-                        obtenerFechaHora(fecha,hora);
-                        usuario.transacciones = AgregarTransaccion(usuario.transacciones,fecha,hora,"Retiro",usuario.usuario,cambioDeSaldo);
-                        printf("Tu nuevo saldo es $%f pesos\n",usuario.saldo);
+                        if(cambioDeSaldo>usuario.saldo){
+                            printf("No tienes dinero suficiente para hacer este retiro\n");
+                        }else{
+                            usuario.saldo = usuario.saldo-cambioDeSaldo;
+                            obtenerFechaHora(fecha,hora);
+                            usuario.transacciones = AgregarTransaccion(usuario.transacciones,fecha,hora,"Retiro",usuario.usuario,cambioDeSaldo);
+                            printf("Tu nuevo saldo es $%f pesos\n",usuario.saldo);
+                        }
                     break;
 
                     case 3:
@@ -309,7 +347,10 @@ int main() {
             }while(salir);
             salir = 1;
             GuardarUsuario(&usuario);
-            
+            //LiberarUsuario(&usuario);
+            }else{
+                printf("Combinacion de claves incorrecta\n");
+            }
         }else if(opc == 'b' || opc == 'B'){
             printf("Hasta luego!\n");
             break;
@@ -317,6 +358,5 @@ int main() {
             printf("Esa opcion no es correcta\n");
         }
     }
-    free(usuario.transacciones);
     return 0;
 }
