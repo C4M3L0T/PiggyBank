@@ -2,6 +2,12 @@
 
 Este programa en C implementa una alcancía digital con funcionalidades básicas utilizando archivos. Puedes agregar, retirar dinero y ver tu saldo actual.
 
+### Nota
+
+Las claves para testear el programa son:
+Usuario:Angel
+Contraseña:pass
+
 ## Funcionalidades
 
 - Acceso a la plataforma mediante usuario y contraseña.
