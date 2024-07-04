@@ -2,6 +2,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 //Definimos la estructura de la transaccion
 typedef struct{
@@ -18,6 +19,12 @@ typedef struct Nodo {
     struct Nodo *siguiente;
 } ListaTransaccion;
 
+// Funcion para inicializar la lista
+ListaTransaccion *Listatransaccion(ListaTransaccion *Lista){
+    Lista = NULL;
+    return Lista;
+}
+
 // Definimos la estructura del usuario
 typedef struct{
     char *usuario;
@@ -27,11 +34,7 @@ typedef struct{
     char *meta;
 } Usuario;
 
-// Funcion para inicializar la lista
-ListaTransaccion *Listatransaccion(ListaTransaccion *Lista){
-    Lista = NULL;
-    return Lista;
-}
+
 
 // Funcion para agregar datos en la lista
 ListaTransaccion *AgregarTransaccion(ListaTransaccion *Lista,char fecha[20],char hora[10],char *tipo, char *usuario,float cambioDeSaldo){
@@ -72,10 +75,10 @@ void ImprimirListaTransaccion(ListaTransaccion *Lista){
         printf("Transaccion de %s\n",Lista->transaccion.tipo);
         printf("Fecha: %s\n",Lista->transaccion.fecha);
         printf("Hora: %s\n",Lista->transaccion.hora);
-        if(Lista->transaccion.tipo == "Deposito"){
-            printf("Deposito realizado de de $%f pesos.\n",Lista->transaccion.cambioDeSaldo);
+        if(strcmp(Lista->transaccion.tipo, "Deposito") == 0){
+            printf("Deposito realizado de $%f pesos.\n",Lista->transaccion.cambioDeSaldo);
         }else{
-            printf("Retiro realizado de de $%f pesos.\n",Lista->transaccion.cambioDeSaldo);
+            printf("Retiro realizado de $%f pesos.\n",Lista->transaccion.cambioDeSaldo);
         }
         printf("La transaccion fue hecha por el usuario: %s\n",Lista->transaccion.usuario);
         if(Lista->siguiente != NULL){
@@ -116,13 +119,112 @@ void obtenerFechaHora(char *fecha, char *hora) {
     strftime(hora, 10, "%H:%M:%S", &tm);
 }
 
-// Funcion para guardar Usuario
+// Funcion para leer archivo
+Usuario* LeerUsuario(){
+    FILE* file = fopen("Usuarios.bin", "rb");
+    if (file == NULL) {
+        printf("No se pudo abrir el archivo %s\n", "Usuarios.bin");
+        return NULL;
+    }
+    Usuario* usuario = malloc(sizeof(Usuario));
+    // Cargar los campos del usuario
+    int length;
+    fread(&length, sizeof(int), 1, file);
+    usuario->usuario = malloc(sizeof(char) * length);
+    fread(usuario->usuario, sizeof(char), length, file);
 
-void Guardar(Usuario usuario){
-    FILE *archivo = fopen("Usuarios.bin","w");
-    fwrite(&usuario, sizeof(Usuario),1, archivo);
-    fclose(archivo);
+    fread(&length, sizeof(int), 1, file);
+    usuario->pass = malloc(sizeof(char) * length);
+    fread(usuario->pass, sizeof(char), length, file);
+
+    fread(&(usuario->saldo), sizeof(float), 1, file);
+
+    fread(&length, sizeof(int), 1, file);
+    usuario->meta = malloc(sizeof(char) * length);
+    fread(usuario->meta, sizeof(char), length, file);
+
+    // Cargar las transacciones
+    usuario->transacciones = malloc(sizeof(ListaTransaccion));
+    ListaTransaccion* actual = usuario->transacciones;
+    while (fread(&length, sizeof(int), 1, file) == 1) {
+        actual->transaccion.fecha = malloc(sizeof(char) * length);
+        fread(actual->transaccion.fecha, sizeof(char), length, file);
+
+        fread(&length, sizeof(int), 1, file);
+        actual->transaccion.hora = malloc(sizeof(char) * length);
+        fread(actual->transaccion.hora, sizeof(char), length, file);
+
+        fread(&length, sizeof(int), 1, file);
+        actual->transaccion.tipo = malloc(sizeof(char) * length);
+        fread(actual->transaccion.tipo, sizeof(char), length, file);
+
+        fread(&length, sizeof(int), 1, file);
+        actual->transaccion.usuario = malloc(sizeof(char) * length);
+        fread(actual->transaccion.usuario, sizeof(char), length, file);
+
+        fread(&(actual->transaccion.cambioDeSaldo), sizeof(float), 1, file);
+
+        // Verificar si hay más datos en el archivo antes de asignar memoria para un nuevo nodo
+        if (fread(&length, sizeof(int), 1, file) == 1) {
+            actual->siguiente = malloc(sizeof(ListaTransaccion));
+            actual = actual->siguiente;
+        } else {
+            actual->siguiente = NULL;
+        }
+    }
+    fclose(file);
+    return usuario;
+    }
+
+// Funcion para guardar archivo 
+void GuardarUsuario(Usuario* usuario){
+    FILE* file = fopen("Usuarios.bin", "wb");
+    if (file == NULL) {
+        printf("No se pudo abrir el archivo %s\n", "Usuarios.bin");
+        return;
+    }
+
+    // Guardar los campos del usuario
+    int length = strlen(usuario->usuario) + 1;
+    fwrite(&length, sizeof(int), 1, file);
+    fwrite(usuario->usuario, sizeof(char), length, file);
+
+    length = strlen(usuario->pass) + 1;
+    fwrite(&length, sizeof(int), 1, file);
+    fwrite(usuario->pass, sizeof(char), length, file);
+
+    fwrite(&(usuario->saldo), sizeof(float), 1, file);
+
+    length = strlen(usuario->meta) + 1;
+    fwrite(&length, sizeof(int), 1, file);
+    fwrite(usuario->meta, sizeof(char), length, file);
+
+     // Guardar las transacciones
+    ListaTransaccion* actual = usuario->transacciones;
+    while (actual != NULL) {
+        length = strlen(actual->transaccion.fecha) + 1;
+        fwrite(&length, sizeof(int), 1, file);
+        fwrite(actual->transaccion.fecha, sizeof(char), length, file);
+
+        length = strlen(actual->transaccion.hora) + 1;
+        fwrite(&length, sizeof(int), 1, file);
+        fwrite(actual->transaccion.hora, sizeof(char), length, file);
+
+        length = strlen(actual->transaccion.tipo) + 1;
+        fwrite(&length, sizeof(int), 1, file);
+        fwrite(actual->transaccion.tipo, sizeof(char), length, file);
+
+        length = strlen(actual->transaccion.usuario) + 1;
+        fwrite(&length, sizeof(int), 1, file);
+        fwrite(actual->transaccion.usuario, sizeof(char), length, file);
+
+        fwrite(&(actual->transaccion.cambioDeSaldo), sizeof(float), 1, file);
+
+        actual = actual->siguiente;
+    }
+    fclose(file);
 }
+
 
 int main() {
     Usuario usuario;
@@ -132,15 +234,14 @@ int main() {
     char fecha[20];
     char hora[10];
     float cambioDeSaldo; 
-    // Definimos el usuario 
-    usuario.pass = "pass";
-    usuario.usuario = "Angel";
-    usuario.meta = "Silla de escritorio";
-    usuario.saldo = 0;
 
-    // Definimos la Lista enlazada
-     usuario.transacciones = Listatransaccion(usuario.transacciones);
-
+    //Definimos el usuario 
+    //usuario.usuario = "Angel";
+    //usuario.pass = "pass";
+    //usuario.saldo = 0;
+    //usuario.meta = "Silla Gamer";
+    //usuario.transacciones = Listatransaccion(usuario.transacciones);
+    usuario = *LeerUsuario();
     while(1){
         MenuInicio();
         scanf("%c",&opc);
@@ -153,7 +254,7 @@ int main() {
                 switch(opciones){
                     case 1:
                         //VerSaldo
-                        printf("Tu saldo es de $%f pesos",usuario.saldo);
+                        printf("Tu saldo es de $%f pesos\n",usuario.saldo);
                     break;
 
                     case 2:
@@ -168,7 +269,7 @@ int main() {
 
                     case 3:
                         //Agregar
-                        printf("Ingresa la cantidad en pesos a retirar: \n");
+                        printf("Ingresa la cantidad en pesos a depositar: \n");
                         scanf("%f",&cambioDeSaldo);
                         usuario.saldo = usuario.saldo+cambioDeSaldo;
                         obtenerFechaHora(fecha,hora);
@@ -195,7 +296,7 @@ int main() {
                         printf("Opcion no valida\n");
                     break;
                     }
-                Guardar(usuario);
+                GuardarUsuario(&usuario);
             }while(salir);
             salir = 1;
             
@@ -206,6 +307,5 @@ int main() {
             printf("Esa opcion no es correcta\n");
         }
     }
-    
     return 0;
 }
