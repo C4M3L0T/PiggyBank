@@ -144,33 +144,43 @@ Usuario* LeerUsuario(){
     fread(usuario->meta, sizeof(char), length, file);
 
     // Cargar las transacciones
-    usuario->transacciones = malloc(sizeof(ListaTransaccion));
-    ListaTransaccion* actual = usuario->transacciones;
+    usuario->transacciones = NULL;
+    ListaTransaccion* actual = NULL;
     while (fread(&length, sizeof(int), 1, file) == 1) {
-        actual->transaccion.fecha = malloc(sizeof(char) * length);
-        fread(actual->transaccion.fecha, sizeof(char), length, file);
+        ListaTransaccion* nuevo = malloc(sizeof(ListaTransaccion));
+        nuevo->siguiente = NULL;
+
+        nuevo->transaccion.fecha = malloc(sizeof(char) * length);
+        fread(nuevo->transaccion.fecha, sizeof(char), length, file);
 
         fread(&length, sizeof(int), 1, file);
-        actual->transaccion.hora = malloc(sizeof(char) * length);
-        fread(actual->transaccion.hora, sizeof(char), length, file);
+        nuevo->transaccion.hora = malloc(sizeof(char) * length);
+        fread(nuevo->transaccion.hora, sizeof(char), length, file);
 
         fread(&length, sizeof(int), 1, file);
-        actual->transaccion.tipo = malloc(sizeof(char) * length);
-        fread(actual->transaccion.tipo, sizeof(char), length, file);
+        nuevo->transaccion.tipo = malloc(sizeof(char) * length);
+        fread(nuevo->transaccion.tipo, sizeof(char), length, file);
 
         fread(&length, sizeof(int), 1, file);
-        actual->transaccion.usuario = malloc(sizeof(char) * length);
-        fread(actual->transaccion.usuario, sizeof(char), length, file);
+        nuevo->transaccion.usuario = malloc(sizeof(char) * length);
+        fread(nuevo->transaccion.usuario, sizeof(char), length, file);
 
-        fread(&(actual->transaccion.cambioDeSaldo), sizeof(float), 1, file);
+        fread(&(nuevo->transaccion.cambioDeSaldo), sizeof(float), 1, file);
 
-        // Verificar si hay más datos en el archivo antes de asignar memoria para un nuevo nodo
-        if (fread(&length, sizeof(int), 1, file) == 1) {
-            actual->siguiente = malloc(sizeof(ListaTransaccion));
-            actual = actual->siguiente;
-        } else {
-            actual->siguiente = NULL;
+        if(usuario->transacciones == NULL){
+            usuario->transacciones = nuevo;
+            actual = nuevo;
+        }else{
+            actual->siguiente = nuevo;
+            actual = nuevo;
         }
+        // Verificar si hay más datos en el archivo antes de asignar memoria para un nuevo nodo
+        //if (fread(&length, sizeof(int), 1, file) == 1) {
+        //    actual->siguiente = malloc(sizeof(ListaTransaccion));
+        //    actual = actual->siguiente;
+        //} else {
+        //    actual->siguiente = NULL;
+        //}
     }
     fclose(file);
     return usuario;
@@ -234,13 +244,13 @@ int main() {
     char fecha[20];
     char hora[10];
     float cambioDeSaldo; 
-
+    // Definimos el espacio para la lista de transacciones 
     //Definimos el usuario 
     //usuario.usuario = "Angel";
     //usuario.pass = "pass";
     //usuario.saldo = 0;
     //usuario.meta = "Silla Gamer";
-    //usuario.transacciones = Listatransaccion(usuario.transacciones);
+    
     usuario = *LeerUsuario();
     while(1){
         MenuInicio();
@@ -295,10 +305,10 @@ int main() {
                     default:
                         printf("Opcion no valida\n");
                     break;
-                    }
-                GuardarUsuario(&usuario);
+                    }            
             }while(salir);
             salir = 1;
+            GuardarUsuario(&usuario);
             
         }else if(opc == 'b' || opc == 'B'){
             printf("Hasta luego!\n");
@@ -307,5 +317,6 @@ int main() {
             printf("Esa opcion no es correcta\n");
         }
     }
+    free(usuario.transacciones);
     return 0;
 }
